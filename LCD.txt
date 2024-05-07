@@ -1,0 +1,110 @@
+LCD EQU P3  ;       ; Define LCD port
+RS EQU P2.5  ;      ; Define RS (Register Select) pin
+RW EQU P2.6 ;       ; Define RW (Read/Write) pin
+EN EQU P2.7  ;      ; Define EN (Enable) pin
+
+; Set origin address
+ORG 0000H;          
+
+; Initialize LCD display
+MOV A,#38H;         ; 8-bit, 2-line display, 5x7 font
+ACALL command;      ; Call command subroutine
+MOV A,#0EH;         ; Display on, cursor on, blinking
+ACALL command;      ; Call command subroutine
+MOV A,#01H;         ; Clear display
+ACALL command;      ; Call command subroutine
+MOV A,#06H;         ; Set cursor to increment, no display shift
+ACALL command ;     ; Call command subroutine
+
+                     ; Loop for displaying message
+L1: MOV A,#80H;      ; Move cursor to beginning of first line
+    ACALL command ;  ; Call command subroutine
+    MOV A,#'N'   ;   ; Load character 'N' into accumulator
+    ACALL display;   ; Call display subroutine
+    MOV A,#'N'   ;
+	ACALL display     ;
+	MOV A,#'A'   ;
+	ACALL display     ;
+	MOV A,#'M'   ;
+	ACALL display     ;
+	MOV A,#'E'   ;
+	ACALL display     ;
+	MOV A,#':'   ;
+	ACALL display     ;
+	MOV A,#'P'   ;
+	ACALL display     ;
+	MOV A,#'R'   ;
+	ACALL display;
+	MOV A,#'A';
+	ACALL display;
+	MOV A,#'N';
+	ACALL display;
+	MOV A,#'A';
+	ACALL display;
+	MOV A,#'L'   ;
+	ACALL display     ;
+	MOV A,#'I'   ;
+	ACALL display     ;
+	MOV A,#0C0H;
+	ACALL command ;
+	MOV A,#'R';
+	ACALL display;
+	MOV A,#'O';
+	ACALL display;
+	MOV A,#'L';
+	ACALL display;
+	MOV A,#'L';
+	ACALL display;
+	MOV A,#' ';
+	ACALL display;
+	MOV A,#'N';
+	ACALL display;
+	MOV A,#'O';
+	ACALL display;
+	MOV A,#':';
+	ACALL display;
+	MOV A,#'2';
+	ACALL display;
+	MOV A,#'1';
+	ACALL display;
+	MOV A,#'3';
+	ACALL display;
+	MOV A,#'0';
+	ACALL display;
+	MOV A,#'6';
+	ACALL display;
+    MOV A,#'6';         ; Load character '6' into accumulator
+    ACALL display;      ; Call display subroutine
+    LJMP L1;            ; Infinite loop: jump back to L1
+
+; Subroutine to send command to LCD
+command:ACALL DELAY;    ; Call delay subroutine
+        MOV LCD,A;      ; Move value in accumulator to LCD data register
+        CLR RS;         ; Clear RS (command mode)
+        CLR RW;         ; Clear RW (write mode)
+        SETB EN;        ; Set EN (enable) to send the command
+        NOP;            ; No operation (delay)
+        NOP;            ; No operation (delay)
+        CLR EN;         ; Clear EN after sending command
+        RET;            ; Return from subroutine
+
+; Subroutine to display character on LCD
+display:ACALL DELAY;    ; Call delay subroutine
+        MOV LCD,A;      ; Move value in accumulator to LCD data register
+        SETB RS;        ; Set RS (data mode)
+        CLR RW;         ; Clear RW (write mode)
+        SETB EN;        ; Set EN (enable) to send the character
+        NOP;            ; No operation (delay)
+        NOP;            ; No operation (delay)
+        CLR EN;         ; Clear EN after sending character
+        RET;            ; Return from subroutine
+
+; Subroutine for delay
+DELAY:MOV R2,#07H;     ; Set R2 as counter for outer loop
+      MOV R1,#0FFH;    ; Set R1 as counter for inner loop
+   L4:MOV R0,#0FFH;    ; Load R0 with 0FFH
+   L2:DJNZ R0,L2;      ; Decrement R0, jump if not zero
+      DJNZ R2,L4;      ; Decrement R2, jump if not zero
+      RET              ; Return from subroutine
+
+END;                  ; End of program

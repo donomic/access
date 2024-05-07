@@ -1,0 +1,161 @@
+LCD EQU P2
+		RS EQU P3.0
+		RW EQU P3.1
+		EN EQU P3.2
+		COL EQU P3
+		ROW EQU P0
+		
+		ORG 0000H
+		MOV A,#38H      ; Move the hexadecimal value 38H into accumulator A
+		ACALL COMMAND
+		MOV A,#0EH      ; Move the hexadecimal value 0EH into accumulator A
+		ACALL COMMAND
+		MOV A,#01H      ; Move the hexadecimal value 01H into accumulator A
+		ACALL COMMAND
+		MOV A,#06H      ; Load hexadecimal value 06H into accumulator A
+		ACALL COMMAND
+		MOV A,#80H      ; Load hexadecimal value 80H into accumulator A
+		ACALL COMMAND
+		MOV A,#'N'
+		ACALL DISPLAY
+		MOV A,#'A'
+		ACALL DISPLAY
+		MOV A,#'M'
+		ACALL DISPLAY
+		MOV A,#'E'
+		ACALL DISPLAY
+		MOV A,#':'
+		ACALL DISPLAY
+		MOV A,#'P'
+		ACALL DISPLAY
+		MOV A,#'R'
+		ACALL DISPLAY
+		MOV A,#'A'
+		ACALL DISPLAY
+		MOV A,#'N'
+		ACALL DISPLAY
+		MOV A,#'A'
+		ACALL DISPLAY
+		MOV A,#'L'
+		ACALL DISPLAY
+		MOV A,#'I'
+		ACALL DISPLAY
+		
+		
+		MOV A,#0C0H
+		ACALL COMMAND
+		MOV A,#'R'
+		ACALL DISPLAY
+		MOV A,#'O'
+		ACALL DISPLAY
+		MOV A,#'L'
+		ACALL DISPLAY
+		MOV A,#'L'
+		ACALL DISPLAY
+		MOV A,#' '
+		ACALL DISPLAY
+		MOV A,#'N'
+		ACALL DISPLAY
+		MOV A,#'O'
+		ACALL DISPLAY
+		MOV A,#':'
+		ACALL DISPLAY
+		MOV A,#0CAH
+		ACALL COMMAND
+		
+		MOV COL,#0FFH
+		MOV ROW,#00H
+		
+		K1: MOV ROW,#00H           ;ground all rows at once
+		MOV A,COL                  ;read all columns (ensure all keys open)
+		ANL A,#00001111B           ;masked unused bits
+		CJNE A,#00001111B,K1
+		K2: ACALL DELAY            ;call 20 msec delay
+		MOV A,COL                  ;see if any key is pressed
+		ANL A,#00001111B           ;mask unused bits
+		CJNE A,#00001111B,OVER     ;key pressed, await closure
+		SJMP K2
+OVER: 	ACALL DELAY                ;wait 20 msec debounce time
+		MOV A,COL                  ;check key closer
+		ANL A,#00001111B           ;masked unused bits
+		CJNE A,#00001111B,OVER1    ;key pressed, find rows
+		SJMP K2
+		
+OVER1: 	MOV ROW,#11111110B         ;ground row 0
+		MOV A,COL                  ;read all columns
+		ANL A,#00001111B           ;masked unused bits
+		CJNE A,#00001111B,ROW0
+		
+		MOV ROW,#11111101B         ;ground row 0
+		MOV A,COL                  ;read all columns
+		ANL A,#00001111B           ;masked unused bits
+		CJNE A,#00001111B,ROW1
+		
+		MOV ROW,#11111011B         ;ground row 0
+		MOV A,COL                  ;read all columns
+		ANL A,#00001111B           ;masked unused bits
+		CJNE A,#00001111B,ROW2
+		
+		MOV ROW,#11110111B         ;ground row 0
+		MOV A,COL                  ;read all columns
+		ANL A,#00001111B           ;masked unused bits
+		CJNE A,#00001111B,ROW3
+		LJMP K2
+		
+ROW0: 	MOV DPTR,#KCODE0           ;set DPTR = start of row 0
+		SJMP FIND                  ;find column key belongs to
+ROW1: 	MOV DPTR,#KCODE1           ;set DPTR = start of row 1
+		SJMP FIND                  ;find column key belongs to
+ROW2: 	MOV DPTR,#KCODE2           ;set DPTR = start of row 2
+		SJMP FIND                  ;find column key belongs to
+ROW3: 	MOV DPTR,#KCODE
+		
+FIND: 	RRC A                      ;see any CY bit is low
+		JNC MATCH                  ;if zero, get the ASCII code
+		INC DPTR                   ;point to next column address
+		SJMP FIND
+		
+MATCH: 	CLR A                      ;set A=0 (match is found)
+		MOVC A,@A+DPTR             ;get ASCII code from table
+		MOV R5,A                   ;store ASCII code in register R5
+		ACALL DISPLAY              ;Call DISPLAY subroutine
+		LJMP K1
+		
+		SJMP $
+		
+COMMAND:
+    ACALL DELAY   ; Call the DELAY subroutine
+    MOV LCD, A    ; Move the value in the accumulator A to the LCD
+    CLR RS        ; Clear RS pin (register select) to indicate command transfer
+    CLR RW        ; Clear RW pin (read/write) for write operation
+    SETB EN       ; Set EN pin (enable) to enable data transfer
+    NOP           ; No operation (delay)
+    NOP           ; No operation (delay)
+    CLR EN        ; Clear EN pin to disable data transfer
+    RET           ; Return from subroutine
+
+		
+DISPLAY:
+    ACALL DELAY   ; Call subroutine DELAY to introduce a delay
+    MOV LCD, A    ; Move the content of accumulator A to the LCD port
+    SETB RS       ; Set the RS pin (Register Select)
+    CLR RW        ; Clear the RW pin (Read/Write)
+    SETB EN       ; Set the EN pin (Enable)
+    NOP           ; No Operation (delay)
+    NOP           ; No Operation (delay)
+    CLR EN        ; Clear the EN pin (Disable)
+    RET           ; Return from subroutine
+
+	DELAY:
+    MOV R0,#10H   ; Load R0 with the value 10H
+L2: MOV R1,#0FFH  ; Load R1 with the value 0FFH
+L1: DJNZ R1,L1    ; Decrement R1, jump to L1 if not zero
+    DJNZ R0,L2    ; Decrement R0, jump to L2 if not zero
+    RET           ; Return from subroutine
+	
+KCODE0: DB '0','1','2','3'  ; Array containing hexadecimal digits 0, 1, 2, 3
+KCODE1: DB '4','5','6','7'  ; Array containing hexadecimal digits 4, 5, 6, 7
+KCODE2: DB '8','9','A','B'  ; Array containing hexadecimal digits 8, 9, A, B
+KCODE3: DB 'C','D','E','F'  ; Array containing hexadecimal digits C, D, E, F
+
+		END
